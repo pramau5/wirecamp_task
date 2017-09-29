@@ -1,13 +1,16 @@
 package com.example.wirecamp.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +31,11 @@ import com.example.wirecamp.activity.handlers.Util;
 import com.example.wirecamp.activity.resources.BaseResource;
 import com.example.wirecamp.activity.resources.TempObj;
 import com.example.wirecamp.activity.resources.WeatherObj;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.Viewport;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,7 +48,9 @@ public class MainActivity extends AppCompatActivity {
 
     EditText editTextCityName;
     Button btnByCityName;
-    TextView textViewResult, textViewInfo;
+    GraphView graphView;
+    ImageView imageView;
+    String day_x="",temp_y="";
 
 
     @Override
@@ -52,13 +62,28 @@ public class MainActivity extends AppCompatActivity {
 
         editTextCityName = (EditText)findViewById(R.id.city);
         btnByCityName = (Button)findViewById(R.id.submit);
-        textViewResult = (TextView)findViewById(R.id.result);
-        textViewInfo = (TextView)findViewById(R.id.info);
+        graphView = (GraphView) findViewById(R.id.graph);
+        imageView = (ImageView) findViewById(R.id.profile_pic);
+
+        String pic = getIntent().getExtras().getString("pic");
+
+        if (!Util.isEmpty(pic)) {
+            Picasso.with(ca)
+                    .load(pic)
+                    .error(R.drawable.ic_card_travel_black_24dp)
+                    .placeholder(R.drawable.ic_card_travel_black_24dp)
+                    .fit()
+                    .centerCrop()
+                    .into(imageView);
+        }
+
 
         btnByCityName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!validateInput()) {
+                    InputMethodManager imm = (InputMethodManager) ca.getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                     fetchData();
                 }
                 //new GetData().execute(editTextCityName.getText().toString());
@@ -92,14 +117,48 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject _temp =  weatherObj.getTempObj();
                     if (_temp!=null) {
                         try {
-                            Log.e(TAG,"Dt long "+weatherObj.getDt());
                             _res = _res + _temp.getString("day") +" Of "+ Util.getDateFormatted(weatherObj.getDt())+"\n\n";
+
+                            String[] day_date = Util.getDateFormatted(weatherObj.getDt()).split("/");
+                            if (day_date.length>0) {
+                                if ("".equals(day_x)) {
+                                    day_x = day_date[0];
+                                } else {
+                                    day_x = day_x + "-" + day_date[0];
+                                }
+                                if ("".equals(temp_y)) {
+                                    temp_y = _temp.getString("day");
+                                } else {
+                                    temp_y = temp_y + "-" + _temp.getString("day");
+                                }
+                            }
                         } catch (JSONException e) {
                             System.out.println("JSON Excep" + e);
                         }
                     }
                 }
-                textViewResult.setText(_res);
+                String[] sep_day = day_x.split("-");
+                String[] sep_temp = temp_y.split("-");
+                for (int i=0;i<sep_day.length;i++) {
+                    System.out.println("PPP ::   "+sep_day[i] + "   :: TEMP Values :: "+ sep_temp[i]);
+                }
+                LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
+                        new DataPoint(Integer.parseInt(sep_day[2]), Double.parseDouble(sep_temp[2])),
+                        new DataPoint(Integer.parseInt(sep_day[3]), Double.parseDouble(sep_temp[3])),
+                        new DataPoint(Integer.parseInt(sep_day[4]), Double.parseDouble(sep_temp[4])),
+                        new DataPoint(Integer.parseInt(sep_day[5]), Double.parseDouble(sep_temp[5])),
+                        new DataPoint(Integer.parseInt(sep_day[6]), Double.parseDouble(sep_temp[6])),
+//                        new DataPoint(Integer.parseInt(sep_day[1]), Double.parseDouble(sep_temp[1])),
+//                        new DataPoint(Integer.parseInt(sep_day[0]), Double.parseDouble(sep_temp[0])),
+
+                });
+                graphView.addSeries(series);
+
+                Viewport viewport = graphView.getViewport();
+                viewport.setYAxisBoundsManual(true);
+                viewport.setMinY(100);
+                viewport.setMaxY(500);
+                viewport.setScrollable(true);
             }
 
             @Override
