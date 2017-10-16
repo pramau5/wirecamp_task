@@ -15,6 +15,16 @@ public class WeatherObj extends BaseResource implements Cloneable {
     private Double pressure;
     private JSONObject tempObj;
 
+    private String object_type;
+
+    public String getObject_type() {
+        return object_type;
+    }
+
+    public void setObject_type(String object_type) {
+        this.object_type = object_type;
+    }
+
     public JSONObject getTempObj() {
         return tempObj;
     }
@@ -89,6 +99,10 @@ public class WeatherObj extends BaseResource implements Cloneable {
         if (jsonObject.has("temp")) {
             this.setTempObj(jsonObject.getJSONObject("temp"));
         }
+
+        if (jsonObject.has("object_type")) {
+            this.setObject_type(jsonObject.getString("object_type"));
+        }
     }
 
     @Override
@@ -100,6 +114,7 @@ public class WeatherObj extends BaseResource implements Cloneable {
         if (this.dt != null) object.put("dt", this.dt);
         if (this.pressure != null) object.put("pressure", this.pressure);
         if (this.tempObj != null) object.put("temp", this.tempObj);
+        if (this.object_type != null) object.put("object_type", this.object_type);
         return object;
     }
 

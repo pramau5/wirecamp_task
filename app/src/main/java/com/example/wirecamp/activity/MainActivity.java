@@ -26,6 +26,7 @@ import java.util.List;
 import com.example.wirecamp.R;
 import com.example.wirecamp.activity.callbacks.GetC4tCallback;
 import com.example.wirecamp.activity.handlers.Constants;
+import com.example.wirecamp.activity.handlers.DatabaseHandler;
 import com.example.wirecamp.activity.handlers.ServerRequestHandler;
 import com.example.wirecamp.activity.handlers.Util;
 import com.example.wirecamp.activity.resources.BaseResource;
@@ -43,6 +44,7 @@ import org.json.JSONObject;
 public class MainActivity extends AppCompatActivity {
 
     Activity ca;
+    DatabaseHandler handler;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -59,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         ca = this;
+
+        handler = DatabaseHandler.getInstance(this);
 
         editTextCityName = (EditText)findViewById(R.id.city);
         btnByCityName = (Button)findViewById(R.id.submit);
@@ -104,6 +108,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void fetchData() {
+        List<BaseResource> resources = handler.getByExpression(new WeatherObj(), "object_type='TEMP_OBJ'");
+        if (resources.size() != 0) {
+            System.out.println("Local DB :: "+resources.get(0));
+            String _res = "";
+            for (int i =0; i<resources.size();i++) {
+                final WeatherObj weatherObj = (WeatherObj) resources.get(i);
+                JSONObject _temp = weatherObj.getTempObj();
+                if (_temp != null) {
+                    try {
+                        _res = _res + _temp.getString("day") + " Of " + Util.getDateFormatted(weatherObj.getDt()) + "\n\n";
+
+                        String[] day_date = Util.getDateFormatted(weatherObj.getDt()).split("/");
+                        if (day_date.length > 0) {
+                            if ("".equals(day_x)) {
+                                day_x = day_date[0];
+                            } else {
+                                day_x = day_x + "-" + day_date[0];
+                            }
+                            if ("".equals(temp_y)) {
+                                temp_y = _temp.getString("day");
+                            } else {
+                                temp_y = temp_y + "-" + _temp.getString("day");
+                            }
+                        }
+                    } catch (JSONException e) {
+                        System.out.println("JSON Excep" + e);
+                    }
+                }
+            }
+            return;
+        }
         ServerRequestHandler requestHandler = new ServerRequestHandler(ca, false);
         requestHandler.setResource("/data/2.5/forecast/daily");
         requestHandler.setQueryId(editTextCityName.getText().toString());
@@ -112,8 +147,17 @@ public class MainActivity extends AppCompatActivity {
             public void success(List<BaseResource> resources) {
                 if (resources.size() == 0) return;
                 String _res = "";
+
                 for (int i =0; i<resources.size();i++) {
                     final WeatherObj weatherObj = (WeatherObj) resources.get(i);
+
+
+                    // Storing to Local DB/ Caching.
+                    handler.delete(new WeatherObj().getClass(), weatherObj.getId());
+                    weatherObj.setObject_type("TEMP_OBJ");
+                    weatherObj.setTempObj(weatherObj.getTempObj());
+                    handler.addOrUpdate(weatherObj);
+
                     JSONObject _temp =  weatherObj.getTempObj();
                     if (_temp!=null) {
                         try {

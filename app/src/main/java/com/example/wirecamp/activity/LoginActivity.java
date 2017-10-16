@@ -12,6 +12,9 @@ import android.widget.Toast;
 
 import com.example.wirecamp.R;
 
+import com.example.wirecamp.activity.handlers.DatabaseHandler;
+import com.example.wirecamp.activity.resources.TempObj;
+import com.example.wirecamp.activity.resources.WeatherObj;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
@@ -25,7 +28,9 @@ import com.facebook.login.LoginResult;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 
 public class LoginActivity extends Activity {
@@ -48,6 +53,15 @@ public class LoginActivity extends Activity {
         currentActivity = this;
 
         setContentView(R.layout.login_activity);
+
+        /******* Initialize Local DB ********/
+        List<Class> classList = new ArrayList<>();
+        classList.add(WeatherObj.class);
+        classList.add(TempObj.class);
+        DatabaseHandler.getInstance(this).init(classList);
+        DatabaseHandler.getInstance(this).autoUpgrade();
+        /************************************/
+
 
         FacebookSdk.sdkInitialize(getApplicationContext());
 
